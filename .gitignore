@@ -1,0 +1,14 @@
+!.gitignore
+.DS_Store
+config.codekit3
+.config.codekit3
+prepros.config
+package.json
+package-lock.json
+*.map
+*.kit
+# utilities.js
+scss/
+parts/
+node_modules/
+scss/style.css
