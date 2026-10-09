@@ -11,4 +11,4 @@ package-lock.json
 scss/
 parts/
 node_modules/
-scss/style.css
+css/style.css
