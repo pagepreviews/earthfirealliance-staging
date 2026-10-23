@@ -389,161 +389,101 @@ document.addEventListener('DOMContentLoaded', () => {
     //roadmap
     (function () {
         'use strict';
-
-        var VISIBLE_CLASS = 'is-visible';
-        var ACTIVE_CLASS = 'is-active';
-        var GAP = 16;
-        function getTransitionTime(el) {
-            var cs = getComputedStyle(el);
-            function parse(str) {
-                return str.split(',').map(function (s) {
-                    s = s.trim();
-                    return s.indexOf('ms') > -1 ? parseFloat(s) : parseFloat(s) * 1000;
-                });
-            }
-            var durations = parse(cs.transitionDuration);
-            var delays = parse(cs.transitionDelay);
-            var max = 0;
-            durations.forEach(function (d, i) {
-                var total = (d || 0) + (delays[i % delays.length] || 0);
-                if (total > max) max = total;
-            });
-            return max;
-        }
-        function showEl(el) {
+        const VISIBLE_CLASS = 'is-visible';
+        const ACTIVE_CLASS = 'is-active';
+        const CLOSING_CLASS = 'is-closing';
+        const HIDE_DELAY = 500;
+        const GAP = 16;
+        const showEl = (el) => {
             clearTimeout(el._hideTimer);
+            el.classList.remove(CLOSING_CLASS);
             el.classList.add(VISIBLE_CLASS);
             void el.offsetWidth;
             el.classList.add(ACTIVE_CLASS);
-        }
-        function hideEl(el, onHidden) {
+        };
+        const hideEl = (el, onHidden) => {
             clearTimeout(el._hideTimer);
             el.classList.remove(ACTIVE_CLASS);
-
-            var time = getTransitionTime(el);
-            function done() {
-                clearTimeout(el._hideTimer);
-                el.removeEventListener('transitionend', onEnd);
-                el.classList.remove(VISIBLE_CLASS);
+            el.classList.add(CLOSING_CLASS);
+            el._hideTimer = setTimeout(() => {
+                el.classList.remove(VISIBLE_CLASS, CLOSING_CLASS);
                 if (onHidden) onHidden();
-            }
-            function onEnd(e) {
-                if (e.target === el) done();
-            }
-
-            if (!time) {
-                done();
-                return;
-            }
-            el.addEventListener('transitionend', onEnd);
-            el._hideTimer = setTimeout(done, time + 50);
-        }
-
-        function initRoadmap() {
-            var roadmap = document.querySelector('.roadmap');
+            }, HIDE_DELAY);
+        };
+        const initRoadmap = () => {
+            let roadmap = document.querySelector('.roadmap');
             if (!roadmap) return;
-
-            var mask = roadmap.querySelector('.roadmap-modal-mask');
-            var openedModal = null;
-
-            function resetPosition(modal) {
+            let mask = roadmap.querySelector('.roadmap-modal-mask');
+            let openedModal = null;
+            let raf;
+            const resetPosition = (modal) => {
                 modal.style.left = '';
                 modal.style.maxWidth = '';
-            }
-            function position(modal) {
+            };
+            const position = (modal) => {
                 resetPosition(modal);
-
-                var vw = document.documentElement.clientWidth;
-                var available = vw - GAP * 2;
-
-                if (modal.offsetWidth > available) {
-                    modal.style.maxWidth = available + 'px';
-                }
-
-                var rect = modal.getBoundingClientRect();
-                var currentLeft = parseFloat(getComputedStyle(modal).left) || 0;
-
-                var minX = GAP;
-                var maxX = Math.max(GAP, vw - GAP - rect.width);
-                var targetX = Math.min(Math.max(rect.left, minX), maxX);
-
-                var delta = targetX - rect.left;
-                if (Math.abs(delta) > 0.5) {
-                    modal.style.left = (currentLeft + delta) + 'px';
-                }
-            }
-
-            function open(modal) {
+                let vw = document.documentElement.clientWidth;
+                if (modal.offsetWidth > vw - GAP * 2) modal.style.maxWidth = (vw - GAP * 2) + 'px';
+                let rect = modal.getBoundingClientRect();
+                let currentLeft = parseFloat(getComputedStyle(modal).left) || 0;
+                let maxX = Math.max(GAP, vw - GAP - rect.width);
+                let delta = Math.min(Math.max(rect.left, GAP), maxX) - rect.left;
+                if (Math.abs(delta) > 0.5) modal.style.left = (currentLeft + delta) + 'px';
+            };
+            const open = (modal) => {
                 if (openedModal && openedModal !== modal) close(true);
                 clearTimeout(modal._hideTimer);
+                modal.classList.remove(CLOSING_CLASS);
                 modal.classList.add(VISIBLE_CLASS);
                 position(modal);
                 void modal.offsetWidth;
                 modal.classList.add(ACTIVE_CLASS);
-
                 if (mask) showEl(mask);
                 openedModal = modal;
-            }
-
-            function close(keepMask) {
+            };
+            const close = (keepMask) => {
                 if (openedModal) {
-                    var modal = openedModal;
+                    let modal = openedModal;
                     openedModal = null;
-                    hideEl(modal, function () {
+                    hideEl(modal, () => {
                         if (!modal.classList.contains(ACTIVE_CLASS)) resetPosition(modal);
                     });
                 }
                 if (mask && !keepMask) hideEl(mask);
-            }
-
-            roadmap.addEventListener('click', function (e) {
-                var toggle = e.target.closest('.roadmap-item-toggle');
+            };
+            roadmap.addEventListener('click', (e) => {
+                let toggle = e.target.closest('.roadmap-item-toggle');
                 if (toggle && roadmap.contains(toggle)) {
                     e.preventDefault();
-                    var item = toggle.closest('.roadmap-item');
-                    var modal = item ? item.querySelector('.roadmap-modal') : null;
+                    let item = toggle.closest('.roadmap-item');
+                    let modal = item ? item.querySelector('.roadmap-modal') : null;
                     if (!modal) return;
-
-                    if (modal === openedModal) {
-                        close();
-                    } else {
-                        open(modal);
-                    }
+                    if (modal === openedModal) close();
+                    else open(modal);
                     return;
                 }
-
                 if (e.target.closest('.roadmap-modal-close')) {
                     e.preventDefault();
                     close();
                     return;
                 }
-
-                if (e.target.closest('.roadmap-modal-mask')) {
-                    close();
-                }
+                if (e.target.closest('.roadmap-modal-mask')) close();
             });
-
-            document.addEventListener('keydown', function (e) {
+            document.addEventListener('keydown', (e) => {
                 if (e.key === 'Escape' && openedModal) close();
             });
-
-            var raf;
-            function onResize() {
+            const onResize = () => {
                 if (!openedModal) return;
                 cancelAnimationFrame(raf);
-                raf = requestAnimationFrame(function () {
+                raf = requestAnimationFrame(() => {
                     if (openedModal) position(openedModal);
                 });
-            }
+            };
             window.addEventListener('resize', onResize);
             window.addEventListener('orientationchange', onResize);
-        }
-
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', initRoadmap);
-        } else {
-            initRoadmap();
-        }
+        };
+        if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initRoadmap);
+        else initRoadmap();
     })();
 
 }); //DOMContentLoaded
