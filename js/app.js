@@ -4,7 +4,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let locomotiveScroll = new LocomotiveScroll({
         lenisOptions: {
             // prevent: (node) => node.getAttribute("id") === "modalSelector",
-            // prevent: (node) => node.closest('.product-modal') !== null,
+            prevent: (node) => node.closest('.modal-panel') !== null,
         },
     });
 
@@ -144,7 +144,7 @@ document.addEventListener('DOMContentLoaded', () => {
         speed: 600,
         spaceBetween: 0,
         slidesPerView: 1,
-        autoHeight: true,
+        // autoHeight: true,
     });
 
     //hero
@@ -360,6 +360,10 @@ document.addEventListener('DOMContentLoaded', () => {
         spaceBetween: 56,
         slidesPerView: 'auto',
         rewind: true,
+        navigation: {
+            nextEl: '.alliance-next',
+            prevEl: '.alliance-prev',
+        },
         // autoplay: {
         //     delay: 3000,
         // },
@@ -387,6 +391,104 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     //roadmap
+    // (function () {
+    //     'use strict';
+    //     const VISIBLE_CLASS = 'is-visible';
+    //     const ACTIVE_CLASS = 'is-active';
+    //     const CLOSING_CLASS = 'is-closing';
+    //     const HIDE_DELAY = 500;
+    //     const GAP = 16;
+    //     const showEl = (el) => {
+    //         clearTimeout(el._hideTimer);
+    //         el.classList.remove(CLOSING_CLASS);
+    //         el.classList.add(VISIBLE_CLASS);
+    //         void el.offsetWidth;
+    //         el.classList.add(ACTIVE_CLASS);
+    //     };
+    //     const hideEl = (el, onHidden) => {
+    //         clearTimeout(el._hideTimer);
+    //         el.classList.remove(ACTIVE_CLASS);
+    //         el.classList.add(CLOSING_CLASS);
+    //         el._hideTimer = setTimeout(() => {
+    //             el.classList.remove(VISIBLE_CLASS, CLOSING_CLASS);
+    //             if (onHidden) onHidden();
+    //         }, HIDE_DELAY);
+    //     };
+    //     const initRoadmap = () => {
+    //         let roadmap = document.querySelector('.roadmap');
+    //         if (!roadmap) return;
+    //         let mask = roadmap.querySelector('.roadmap-modal-mask');
+    //         let openedModal = null;
+    //         let raf;
+    //         const resetPosition = (modal) => {
+    //             modal.style.left = '';
+    //             modal.style.maxWidth = '';
+    //         };
+    //         const position = (modal) => {
+    //             resetPosition(modal);
+    //             let vw = document.documentElement.clientWidth;
+    //             if (modal.offsetWidth > vw - GAP * 2) modal.style.maxWidth = (vw - GAP * 2) + 'px';
+    //             let rect = modal.getBoundingClientRect();
+    //             let currentLeft = parseFloat(getComputedStyle(modal).left) || 0;
+    //             let maxX = Math.max(GAP, vw - GAP - rect.width);
+    //             let delta = Math.min(Math.max(rect.left, GAP), maxX) - rect.left;
+    //             if (Math.abs(delta) > 0.5) modal.style.left = (currentLeft + delta) + 'px';
+    //         };
+    //         const open = (modal) => {
+    //             if (openedModal && openedModal !== modal) close(true);
+    //             clearTimeout(modal._hideTimer);
+    //             modal.classList.remove(CLOSING_CLASS);
+    //             modal.classList.add(VISIBLE_CLASS);
+    //             position(modal);
+    //             void modal.offsetWidth;
+    //             modal.classList.add(ACTIVE_CLASS);
+    //             if (mask) showEl(mask);
+    //             openedModal = modal;
+    //         };
+    //         const close = (keepMask) => {
+    //             if (openedModal) {
+    //                 let modal = openedModal;
+    //                 openedModal = null;
+    //                 hideEl(modal, () => {
+    //                     if (!modal.classList.contains(ACTIVE_CLASS)) resetPosition(modal);
+    //                 });
+    //             }
+    //             if (mask && !keepMask) hideEl(mask);
+    //         };
+    //         roadmap.addEventListener('click', (e) => {
+    //             let toggle = e.target.closest('.roadmap-item-toggle');
+    //             if (toggle && roadmap.contains(toggle)) {
+    //                 e.preventDefault();
+    //                 let item = toggle.closest('.roadmap-item');
+    //                 let modal = item ? item.querySelector('.roadmap-modal') : null;
+    //                 if (!modal) return;
+    //                 if (modal === openedModal) close();
+    //                 else open(modal);
+    //                 return;
+    //             }
+    //             if (e.target.closest('.roadmap-modal-close')) {
+    //                 e.preventDefault();
+    //                 close();
+    //                 return;
+    //             }
+    //             if (e.target.closest('.roadmap-modal-mask')) close();
+    //         });
+    //         document.addEventListener('keydown', (e) => {
+    //             if (e.key === 'Escape' && openedModal) close();
+    //         });
+    //         const onResize = () => {
+    //             if (!openedModal) return;
+    //             cancelAnimationFrame(raf);
+    //             raf = requestAnimationFrame(() => {
+    //                 if (openedModal) position(openedModal);
+    //             });
+    //         };
+    //         window.addEventListener('resize', onResize);
+    //         window.addEventListener('orientationchange', onResize);
+    //     };
+    //     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initRoadmap);
+    //     else initRoadmap();
+    // })();
     (function () {
         'use strict';
         const VISIBLE_CLASS = 'is-visible';
@@ -394,6 +496,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const CLOSING_CLASS = 'is-closing';
         const HIDE_DELAY = 500;
         const GAP = 16;
+        const SIDE_OFFSET = 1.2;
         const showEl = (el) => {
             clearTimeout(el._hideTimer);
             el.classList.remove(CLOSING_CLASS);
@@ -410,56 +513,76 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (onHidden) onHidden();
             }, HIDE_DELAY);
         };
+        const getModal = (toggle) => {
+            let href = toggle.getAttribute('href') || '';
+            return href.length > 1 && href.charAt(0) === '#' ? document.getElementById(href.slice(1)) : null;
+        };
         const initRoadmap = () => {
-            let roadmap = document.querySelector('.roadmap');
-            if (!roadmap) return;
-            let mask = roadmap.querySelector('.roadmap-modal-mask');
+            let mask = document.querySelector('.roadmap-modal-mask');
             let openedModal = null;
+            let openedToggle = null;
             let raf;
             const resetPosition = (modal) => {
                 modal.style.left = '';
+                modal.style.top = '';
                 modal.style.maxWidth = '';
             };
-            const position = (modal) => {
+            const position = (modal, toggle) => {
                 resetPosition(modal);
                 let vw = document.documentElement.clientWidth;
+                let vh = document.documentElement.clientHeight;
                 if (modal.offsetWidth > vw - GAP * 2) modal.style.maxWidth = (vw - GAP * 2) + 'px';
-                let rect = modal.getBoundingClientRect();
-                let currentLeft = parseFloat(getComputedStyle(modal).left) || 0;
-                let maxX = Math.max(GAP, vw - GAP - rect.width);
-                let delta = Math.min(Math.max(rect.left, GAP), maxX) - rect.left;
-                if (Math.abs(delta) > 0.5) modal.style.left = (currentLeft + delta) + 'px';
+                modal.style.transition = 'none';
+                modal.style.transform = 'none';
+                modal.style.left = '0px';
+                modal.style.top = '0px';
+                let origin = modal.getBoundingClientRect();
+                modal.style.transform = '';
+                void modal.offsetWidth;
+                modal.style.transition = '';
+                let w = modal.offsetWidth;
+                let h = modal.offsetHeight;
+                let t = toggle.getBoundingClientRect();
+                let offset = parseFloat(getComputedStyle(document.documentElement).fontSize) * SIDE_OFFSET;
+                let x = t.right + offset;
+                if (x + w > vw - GAP) x = t.left - offset - w;
+                x = Math.min(Math.max(x, GAP), Math.max(GAP, vw - GAP - w));
+                let y = t.top + t.height / 2 - h / 2;
+                y = Math.min(Math.max(y, GAP), Math.max(GAP, vh - GAP - h));
+                modal.style.left = (x - origin.left) + 'px';
+                modal.style.top = (y - origin.top) + 'px';
             };
-            const open = (modal) => {
+            const open = (modal, toggle) => {
                 if (openedModal && openedModal !== modal) close(true);
                 clearTimeout(modal._hideTimer);
                 modal.classList.remove(CLOSING_CLASS);
                 modal.classList.add(VISIBLE_CLASS);
-                position(modal);
+                position(modal, toggle);
                 void modal.offsetWidth;
                 modal.classList.add(ACTIVE_CLASS);
                 if (mask) showEl(mask);
                 openedModal = modal;
+                openedToggle = toggle;
             };
             const close = (keepMask) => {
                 if (openedModal) {
                     let modal = openedModal;
                     openedModal = null;
+                    openedToggle = null;
                     hideEl(modal, () => {
                         if (!modal.classList.contains(ACTIVE_CLASS)) resetPosition(modal);
                     });
                 }
                 if (mask && !keepMask) hideEl(mask);
             };
-            roadmap.addEventListener('click', (e) => {
+            document.addEventListener('click', (e) => {
                 let toggle = e.target.closest('.roadmap-item-toggle');
-                if (toggle && roadmap.contains(toggle)) {
+                if (toggle) {
                     e.preventDefault();
-                    let item = toggle.closest('.roadmap-item');
-                    let modal = item ? item.querySelector('.roadmap-modal') : null;
+                    let modal = getModal(toggle);
                     if (!modal) return;
                     if (modal === openedModal) close();
-                    else open(modal);
+                    else open(modal, toggle);
                     return;
                 }
                 if (e.target.closest('.roadmap-modal-close')) {
@@ -476,7 +599,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (!openedModal) return;
                 cancelAnimationFrame(raf);
                 raf = requestAnimationFrame(() => {
-                    if (openedModal) position(openedModal);
+                    if (openedModal) position(openedModal, openedToggle);
                 });
             };
             window.addEventListener('resize', onResize);
@@ -485,6 +608,81 @@ document.addEventListener('DOMContentLoaded', () => {
         if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initRoadmap);
         else initRoadmap();
     })();
+
+    //data gallery
+    const dataGallerySwiper = new Swiper('.data-gallery-swiper', {
+        navigation: {
+            nextEl: '.data-gallery-next',
+            prevEl: '.data-gallery-prev',
+        },
+        speed: 600,
+        spaceBetween: 16,
+        slidesPerView: 1,
+    });
+
+    //roadmap-2
+    const roadmap2Swiper = new Swiper('.roadmap-2-slider', {
+        navigation: {
+            nextEl: '.roadmap-next',
+            prevEl: '.roadmap-prev',
+        },
+        speed: 600,
+        spaceBetween: 0,
+        slidesPerView: 'auto',
+        // cssMode: true,
+    });
+
+    //modal-panel
+    const modalTriggers = document.querySelectorAll('.modal-panel-trigger');
+    const modalPanels = document.querySelectorAll('.modal-panel');
+    const mask = document.querySelector('.modal-panel-mask');
+    if (!modalTriggers.length || !modalPanels.length || !mask) return;
+    let activeModal = null;
+    let closing = false;
+    function closeModal() {
+        if (!activeModal || closing) return;
+        const modal = activeModal;
+        closing = true;
+        locomotiveScroll.start();
+        modal.classList.remove('is-active');
+        mask.classList.remove('is-active');
+        const onTransitionEnd = event => {
+            if (event.target !== modal) return;
+            modal.classList.remove('is-visible');
+            modal.removeEventListener('transitionend', onTransitionEnd);
+            if (activeModal === modal) activeModal = null;
+            closing = false;
+        };
+        modal.addEventListener('transitionend', onTransitionEnd);
+    }
+    modalTriggers.forEach(person => {
+        person.addEventListener('click', event => {
+            event.preventDefault();
+            const modalId = person.getAttribute('href')?.substring(1);
+            const modal = modalId ? document.getElementById(modalId) : null;
+            if (!modal || !modal.classList.contains('modal-panel')) return;
+            if (activeModal) closeModal();
+            if (closing) return;
+            activeModal = modal;
+            locomotiveScroll.stop();
+            mask.classList.add('is-active');
+            modal.classList.add('is-visible');
+            requestAnimationFrame(() => modal.classList.add('is-active'));
+        });
+    });
+    modalPanels.forEach(modal => {
+        modal.querySelectorAll('.modal-panel-close').forEach(button => {
+            button.addEventListener('click', event => {
+                event.preventDefault();
+                if (activeModal === modal) closeModal();
+            });
+        });
+    });
+    mask.addEventListener('click', closeModal);
+    document.addEventListener('keydown', event => {
+        if (event.key === 'Escape') closeModal();
+    });
+
 
 }); //DOMContentLoaded
 
